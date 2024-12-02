@@ -5,6 +5,7 @@ const User = require('../modals/user');
 
 const protect = async (req, res, next) => {
   let token;
+  console.log('tokens',token)
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     token = req.headers.authorization.split(' ')[1];
     try {
