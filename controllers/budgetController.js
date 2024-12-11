@@ -6,6 +6,7 @@ const Budget = require("../modals/budget");
 
 exports.getBudget = async (req, res) => {
   try {
+    console.log('req.user.id',req.user.id)
     const budget = await Budget.findOne({ user: req.user.id });
     res.json(budget || { amount: 0 });
   } catch (error) {

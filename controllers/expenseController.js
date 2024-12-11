@@ -1,6 +1,5 @@
 const Expense = require("../modals/expense");
 
-// const Expense = require('../models/Expense');
 
 
 exports.getExpenses = async (req, res) => {
@@ -35,14 +34,48 @@ exports.addExpense = async (req, res) => {
   }
 };
 
-exports.deleteExpense = async (req, res) => {
+exports.updateExpense = async (req, res) => {
+  const { id } = req.params; // Expense ID to update
+  const { amount, category, date, notes } = req.body;
+
   try {
-    await Expense.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Expense deleted' });
+    const expense = await Expense.findOne({ _id: id, user: req.user.id });
+
+    if (!expense) {
+      return res.status(404).json({ message: 'Expense not found' });
+    }
+
+    // Update the fields with new values
+    expense.amount = amount || expense.amount;
+    expense.category = category || expense.category;
+    expense.date = date || expense.date;
+    expense.notes = notes || expense.notes;
+
+    await expense.save();
+
+    res.status(200).json(expense);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+
+exports.deleteExpense = async (req, res) => {
+  const { id } = req.params; // Expense ID to delete
+
+  try {
+    const expense = await Expense.findOneAndDelete({ _id: id, user: req.user.id });
+
+    if (!expense) {
+      return res.status(404).json({ message: 'Expense not found' });
+    }
+
+    res.status(200).json({ message: 'Expense deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 
 
 
@@ -122,5 +155,74 @@ exports.getDashboardData = async (req, res) => {
   } catch (error) {
     console.error('Error in getDashboardData:', error);
     res.status(500).json({ message: 'Server error' });
+  }
+};
+
+const mongoose = require('mongoose');
+
+exports.getMonthlyExpenses = async (req, res) => {
+  try {
+    const { limit, sort } = req.query;
+    const filters = { user: req.user.id }; // Ensure the query is scoped to the authenticated user
+    console.log("filters",filters)
+
+    // Aggregate expenses by month and year
+    const expenses = await Expense.aggregate([
+      { $match: { user: new mongoose.Types.ObjectId(filters.user) } },
+      {
+        $group: {
+          _id: {
+            month: { $month: '$date' },
+            year: { $year: '$date' },
+          },
+          totalExpenses: { $sum: '$amount' },
+        },
+      },
+      { $sort: sort ? { [`_id.${sort.replace('-', '')}`]: sort.startsWith('-') ? -1 : 1 } : { '_id.year': 1, '_id.month': 1 } }, // Sort by year and month
+      { $limit: limit ? parseInt(limit) : 12 }, // Default limit to 12 months
+    ]);
+    console.log("expenses",expenses)
+
+    // Format the result into an array of objects with readable month names
+    const formattedExpenses = expenses.map(item => ({
+      month: new Date(item._id.year, item._id.month - 1).toLocaleString('default', {
+        month: 'long',
+        year: 'numeric',
+      }),
+      expense: item.totalExpenses,
+    }));
+    console.log("formattedExpenses",formattedExpenses)
+
+    res.json(formattedExpenses);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+
+exports.getCurrentExpenses = async (req, res) => {
+  try {
+    const { limit, sort } = req.query;
+    const filters = { user: req.user.id }; // Ensure the query is scoped to the authenticated user
+
+    // Get the start and end dates for the current month
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+    // Add the date filter to only include expenses for the current month
+    filters.date = { $gte: startOfMonth, $lte: endOfMonth };
+
+    // Fetch expenses with optional sorting and limiting
+    const expenses = await Expense.find(filters)
+      .sort(sort ? { [sort.replace('-', '')]: sort.startsWith('-') ? -1 : 1 } : {})
+      .limit(limit ? parseInt(limit) : 10); // Default limit to 10 if not specified
+
+    console.log("expenses1",expenses)
+
+    res.json(expenses);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
