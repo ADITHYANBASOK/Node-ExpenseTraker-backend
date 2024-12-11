@@ -5,7 +5,7 @@ const Expense = require("../modals/expense");
 exports.getExpenses = async (req, res) => {
   try {
     const { limit, sort } = req.query;
-    const filters = { user: req.user.id }; // Ensure the query is scoped to the authenticated user
+    const filters = { user: req.user.id }; 
 
     // Fetch expenses with optional sorting and limiting
     const expenses = await Expense.find(filters)
@@ -35,7 +35,7 @@ exports.addExpense = async (req, res) => {
 };
 
 exports.updateExpense = async (req, res) => {
-  const { id } = req.params; // Expense ID to update
+  const { id } = req.params; 
   const { amount, category, date, notes } = req.body;
 
   try {

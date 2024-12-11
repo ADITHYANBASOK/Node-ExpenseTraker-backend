@@ -1,8 +1,6 @@
-// controllers/budgetController.js
 
 const Budget = require("../modals/budget");
 
-// const Budget = require('../models/Budget');
 
 exports.getBudget = async (req, res) => {
   try {
