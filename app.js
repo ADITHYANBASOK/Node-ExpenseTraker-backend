@@ -12,7 +12,7 @@ const app = express();
 
 const corsOptions = {
   origin: (origin, callback) => {
-    const allowedOrigins = ['http://localhost:5173', 'https://your-frontend-domain.com'];
+    const allowedOrigins = ['http://localhost:5173', 'https://react-expense-traker-frontend-qn4uxxzu1.vercel.app'];
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
